@@ -373,6 +373,12 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"⚠️  导入工信部_文件发布爬虫失败: {e}")
         
+        try:
+            import miit_gzdt_crawler
+            manager.register_crawler("工信部_工作动态", miit_gzdt_crawler.run, miit_gzdt_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入工信部_工作动态爬虫失败: {e}")
+        
     except ImportError as e:
         print(f"⚠️  导入爬虫模块失败: {e}")
     
