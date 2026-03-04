@@ -106,6 +106,9 @@ class CrawlerManager:
                 sys.stdout = original_stdout
                 sys.stderr = original_stderr
                 
+                # 将捕获的输出写回原始输出流，保持原有输出显示
+                print(crawler_output, end='')
+                
                 # 记录结果
                 execution_time = time.time() - start_time
                 
