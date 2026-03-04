@@ -101,10 +101,12 @@ class DBUtils:
             print(f"✅ {source_name}：成功写入 {success_count} 条数据到 Supabase")
             
             # 推送数据到API接口
+            api_push_result = None
             if success_count > 0:
-                self.push_to_api(data_list[:success_count], source_name)
+                api_push_result = self.push_to_api(data_list[:success_count], source_name)
             
-            return data_list[:success_count]
+            # 保存API推送结果到返回值中
+            return data_list[:success_count], api_push_result
             
         except Exception as e:
             print(f"❌ {source_name}：数据库写入失败 - {e}")
@@ -118,11 +120,11 @@ class DBUtils:
             source_name: 数据源名称
             
         Returns:
-            bool: 是否成功推送
+            dict: 推送结果，包含status和message
         """
         if not data_list:
             print(f"⚠️  {source_name}：没有数据需要推送，跳过。")
-            return False
+            return {"status": "skipped", "message": "没有数据需要推送"}
         
         target_url = "http://seoularmv4.09282018.xyz:5000/api/receive-data"
         
@@ -168,15 +170,18 @@ class DBUtils:
             
             # 检查响应状态
             response.raise_for_status()
-            print(f"✅ {source_name}：成功推送 {len(items)} 条数据到API")
-            return True
+            message = f"成功推送 {len(items)} 条数据到API"
+            print(f"✅ {source_name}：{message}")
+            return {"status": "success", "message": message}
             
         except requests.exceptions.RequestException as e:
-            print(f"❌ {source_name}：API推送失败 - {e}")
-            return False
+            message = f"API推送失败 - {e}"
+            print(f"❌ {source_name}：{message}")
+            return {"status": "error", "message": message}
         except Exception as e:
-            print(f"❌ {source_name}：推送过程中发生未知错误 - {e}")
-            return False
+            message = f"推送过程中发生未知错误 - {e}"
+            print(f"❌ {source_name}：{message}")
+            return {"status": "error", "message": message}
     
     def push_daily_status(self, date_str, success_count, fail_count):
         """推送每日爬虫状态数据到API接口
@@ -187,7 +192,7 @@ class DBUtils:
             fail_count: 失败的爬取数
             
         Returns:
-            bool: 是否成功推送
+            dict: 推送结果，包含status和message
         """
         target_url = "http://seoularmv4.09282018.xyz:5000/api/receive-daily-status"
         
@@ -217,15 +222,18 @@ class DBUtils:
             
             # 检查响应状态
             response.raise_for_status()
-            print(f"✅ 成功推送每日状态数据 - 日期={date_str}, 成功={success_count}, 失败={fail_count}")
-            return True
+            message = f"成功推送每日状态数据 - 日期={date_str}, 成功={success_count}, 失败={fail_count}"
+            print(f"✅ {message}")
+            return {"status": "success", "message": message}
             
         except requests.exceptions.RequestException as e:
-            print(f"❌ 每日状态数据推送失败 - {e}")
-            return False
+            message = f"每日状态数据推送失败 - {e}"
+            print(f"❌ {message}")
+            return {"status": "error", "message": message}
         except Exception as e:
-            print(f"❌ 推送过程中发生未知错误 - {e}")
-            return False
+            message = f"推送过程中发生未知错误 - {e}"
+            print(f"❌ {message}")
+            return {"status": "error", "message": message}
 
 # 创建全局实例
 db_utils = DBUtils()
@@ -239,7 +247,7 @@ def save_to_policy(data_list, source_name):
         source_name: 数据源名称
         
     Returns:
-        list: 成功写入的数据列表
+        tuple: (成功写入的数据列表, API推送结果)
     """
     return db_utils.save_to_policy(data_list, source_name)
 

@@ -94,16 +94,28 @@ class CrawlerManager:
                 execution_time = time.time() - start_time
                 
                 # 区分抓取数量和写入数量
-                # 假设 result 包含实际写入的数据（即使写入失败也返回抓取的数据）
-                crawl_count = len(result)
+                # 处理可能的元组返回值（包含API推送结果）
+                crawl_count = 0
+                write_count = 0
+                api_push_result = None
+                
+                if isinstance(result, tuple) and len(result) == 2:
+                    data_list, api_push_result = result
+                    crawl_count = len(data_list)
+                    write_count = len(data_list)
+                else:
+                    data_list = result
+                    crawl_count = len(data_list)
+                    write_count = len(data_list)
                 
                 self.results[name] = {
                     'status': 'success',
                     'crawl_count': crawl_count,
-                    'write_count': crawl_count,  # 暂时使用相同值，后续可从爬虫返回值中获取
+                    'write_count': write_count,
                     'execution_time': round(execution_time, 2),
                     'timestamp': datetime.now().isoformat(),
-                    'target_url': target_url
+                    'target_url': target_url,
+                    'api_push_result': api_push_result
                 }
                 
                 print(f"✅ 爬虫 {name} 执行成功")
@@ -159,6 +171,33 @@ class CrawlerManager:
         # 恢复标准输出
         sys.stdout = original_stdout
         sys.stderr = original_stderr
+        
+        # 输出API推送结果
+        print("\n📡 API推送结果:")
+        print("-" * 40)
+        api_success_count = 0
+        api_error_count = 0
+        
+        for crawler_name, result in self.results.items():
+            if result['status'] == 'success' and 'api_push_result' in result:
+                api_result = result['api_push_result']
+                if api_result:
+                    status = api_result.get('status', 'unknown')
+                    message = api_result.get('message', '')
+                    if status == 'success':
+                        print(f"✅ {crawler_name}：{message}")
+                        api_success_count += 1
+                    elif status == 'error':
+                        print(f"❌ {crawler_name}：{message}")
+                        api_error_count += 1
+                    else:
+                        print(f"⚠️  {crawler_name}：{message}")
+        
+        if api_success_count == 0 and api_error_count == 0:
+            print("⚠️  没有API推送记录")
+        else:
+            print(f"📊 API推送统计: 成功 {api_success_count} 个, 失败 {api_error_count} 个")
+        print("-" * 40)
         
         # 发送飞书通知
         if send_crawler_result:
