@@ -87,8 +87,24 @@ class CrawlerManager:
             start_time = time.time()
             
             try:
+                # 创建临时输出缓冲区，用于捕获当前爬虫的输出
+                from io import StringIO
+                temp_stdout = StringIO()
+                temp_stderr = StringIO()
+                original_stdout = sys.stdout
+                original_stderr = sys.stderr
+                sys.stdout = temp_stdout
+                sys.stderr = temp_stderr
+                
                 # 执行爬虫
                 result = crawler_func()
+                
+                # 捕获当前爬虫的输出
+                crawler_output = temp_stdout.getvalue() + temp_stderr.getvalue()
+                
+                # 恢复标准输出
+                sys.stdout = original_stdout
+                sys.stderr = original_stderr
                 
                 # 记录结果
                 execution_time = time.time() - start_time
@@ -109,10 +125,9 @@ class CrawlerManager:
                     crawl_count = len(data_list)
                     write_count = len(data_list)
                 
-                # 尝试从爬虫输出中提取过滤数量
+                # 尝试从当前爬虫的输出中提取过滤数量
                 import re
-                output = dual_out.getvalue() + dual_err.getvalue()
-                filter_match = re.search(r'过滤掉\s*(\d+)\s*条', output)
+                filter_match = re.search(r'过滤掉\s*(\d+)\s*条', crawler_output)
                 if filter_match:
                     filter_count = int(filter_match.group(1))
                 
