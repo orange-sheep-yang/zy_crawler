@@ -1,3 +1,4 @@
+
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -17,7 +18,6 @@ def scrape_data(target_date=None):
         tz_utc8 = timezone(timedelta(hours=8))
         today = datetime.now(tz_utc8).date()
         
-        # 如果没有指定目标日期，使用前一天的日期
         if target_date:
             try:
                 yesterday = datetime.strptime(target_date, '%Y-%m-%d').date()
@@ -33,7 +33,6 @@ def scrape_data(target_date=None):
             print(f"📅 运行日期（北京时间）：{today}")
             print(f"🎯 目标抓取日期：{yesterday}")
         
-        # 添加请求头，模拟浏览器行为
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -43,10 +42,8 @@ def scrape_data(target_date=None):
             'Origin': 'https://jsszfhcxjst.jiangsu.gov.cn'
         }
         
-        # 直接调用AJAX接口获取数据
         ajax_url = "https://jsszfhcxjst.jiangsu.gov.cn/module/web/jpage/dataproxy.jsp"
         
-        # AJAX请求参数
         data = {
             'col': '1',
             'appid': '1',
@@ -58,7 +55,7 @@ def scrape_data(target_date=None):
             'webname': '江苏省住房和城乡建设厅',
             'permissiontype': '0',
             'startrecord': '1',
-            'endrecord': '100',  # 获取足够多的记录
+            'endrecord': '100',
             'perpage': '15'
         }
         
@@ -66,29 +63,22 @@ def scrape_data(target_date=None):
         ajax_response = requests.post(ajax_url, headers=headers, data=data, timeout=30)
         ajax_response.raise_for_status()
         
-        # 解析XML格式的返回内容
         import xml.etree.ElementTree as ET
         root = ET.fromstring(ajax_response.content)
-        
-        # 提取recordset中的所有record
         recordset = root.find('recordset')
         records = recordset.findall('record') if recordset is not None else []
         
-        # 调试信息
         print(f"📋 找到 {len(records)} 条数据")
         
         filtered_count = 0
         
         for record in records:
-            # 获取CDATA中的HTML内容
             cdata = record.text
             if not cdata:
                 continue
             
-            # 解析HTML
             item_soup = BeautifulSoup(cdata, 'html.parser')
             
-            # 查找标题和链接
             title_elem = item_soup.find('a')
             if not title_elem:
                 continue
@@ -99,14 +89,12 @@ def scrape_data(target_date=None):
             if not title or not policy_url:
                 continue
             
-            # 处理相对URL
             if not policy_url.startswith('http'):
                 if policy_url.startswith('/'):
                     policy_url = f"https://jsszfhcxjst.jiangsu.gov.cn{policy_url}"
                 else:
                     policy_url = f"https://jsszfhcxjst.jiangsu.gov.cn/col/col8639/{policy_url}"
             
-            # 查找日期
             date_elem = item_soup.find('span', class_='bt-right')
             date_str = date_elem.get_text(strip=True) if date_elem else ''
             pub_at = None
@@ -118,68 +106,23 @@ def scrape_data(target_date=None):
             
             all_items.append({'title': title, 'pub_at': pub_at})
             
-            # 过滤非目标日期的数据
             if pub_at != yesterday:
                 filtered_count += 1
                 continue
             
-            # 抓取详情页内容
             content = ""
             try:
                 detail_response = requests.get(policy_url, headers=headers, timeout=15)
                 detail_response.raise_for_status()
                 
-                # 解析HTML
                 detail_soup = BeautifulSoup(detail_response.content, 'html.parser')
-                
-                # 使用lxml查找正文
-                import lxml.html
-                tree = lxml.html.fromstring(detail_response.content)
-                
-                # 尝试查找真正的正文容器
-                found = False
-                
-                # 1. 尝试用户提供的XPath
-                content_elem = tree.xpath('//div[@aria-label="正文区"]')
+                content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.main-fl-con') or detail_soup.select_one('.box_wzy_ys')
                 if content_elem:
-                    content = content_elem[0].text_content().strip()
-                    found = True
-                
-                # 2. 尝试查找#zoom元素之后的div
-                if not found:
-                    zoom_elem = tree.xpath('//div[@id="zoom"]')
-                    if zoom_elem:
-                        # 查找#zoom的后续兄弟元素
-                        following_divs = zoom_elem[0].xpath('./following-sibling::div')
-                        for div in following_divs:
-                            div_content = div.text_content().strip()
-                            if len(div_content) > 100:  # 内容长度超过100字符，可能是正文
-                                content = div_content
-                                found = True
-                                break
-                
-                # 3. 尝试其他常见的正文容器
-                if not found:
-                    common_selectors = [
-                        '//div[@class="main-fl-con"]',
-                        '//div[@class="article-content"]',
-                        '//div[@class="content"]',
-                        '//div[@id="content"]'
-                    ]
-                    for selector in common_selectors:
-                        content_elem = tree.xpath(selector)
-                        if content_elem:
-                            content = content_elem[0].text_content().strip()
-                            if len(content) > 100:
-                                found = True
-                                break
-                
-                # 4. 尝试使用BeautifulSoup选择器
-                if not found:
-                    content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.content') or detail_soup.select_one('.article-content')
-                    if content_elem:
-                        content = content_elem.get_text(strip=True)
-            except Exception:
+                    content = content_elem.get_text(strip=True)
+                    if len(content) > 0:
+                        print(f"   📄 成功抓取到内容: 前80字符 = {content[:80]}...")
+            except Exception as e:
+                print(f"   ⚠️  抓取内容时出错: {e}")
                 pass
             
             policy_data = {
@@ -228,10 +171,8 @@ def run(target_date=None):
 
 if __name__ == "__main__":
     import sys
-    # 如果提供了日期参数，使用指定日期进行测试
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
         run(target_date)
     else:
-        # 否则使用默认行为（抓取前一天数据）
         run()
