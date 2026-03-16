@@ -423,6 +423,13 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"⚠️  导入工信部_工作动态爬虫失败: {e}")
         
+        # 导入工信部网站tabbox爬虫
+        try:
+            import miit_tabbox_crawler
+            manager.register_crawler("工信部_网站tabbox", miit_tabbox_crawler.run, miit_tabbox_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入工信部_网站tabbox爬虫失败: {e}")
+        
         # 导入江苏省住房和城乡建设厅爬虫
         try:
             import jiangsu_zfhcxjst_tf_crawler
