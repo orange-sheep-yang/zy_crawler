@@ -112,14 +112,9 @@ def scrape_data():
                 # 保存到 all_items 用于显示最新5条
                 all_items.append({'title': title, 'pub_at': pub_at})
                 
-                # 为了测试内容抓取，暂时不过滤日期
-                # if pub_at != yesterday:
-                #     filtered_count += 1
-                #     continue
-                
-                # 只测试第一条新闻
-                if len(policies) >= 1:
-                    break
+                if pub_at != yesterday:
+                    filtered_count += 1
+                    continue
                 
                 # 获取文章内容
                 content = ""
@@ -127,13 +122,7 @@ def scrape_data():
                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
                     
-                    # 调试：打印页面的前1000个字符，了解页面结构
-                    print(f"\n📄 文章标题: {title}")
-                    print(f"📅 发布日期: {pub_at}")
-                    print(f"🔗 文章链接: {article_url}")
-                    print(f"\n🔍 页面结构预览: {detail_soup.prettify()[:1000]}...")
-                    
-                    # 尝试更多选择器
+                    # 尝试多种选择器获取内容
                     content_elem = detail_soup.select_one('div[aria-label="正文区"]')
                     
                     # 尝试常见的内容选择器
@@ -157,26 +146,14 @@ def scrape_data():
                     ]
                     
                     if not content_elem:
-                        print("🔍 尝试其他选择器...")
                         for selector in selectors:
                             content_elem = detail_soup.select_one(selector)
                             if content_elem:
-                                print(f"✅ 找到内容元素: {selector}")
                                 break
                     
                     if content_elem:
                         content = content_elem.get_text(strip=True)
-                        print(f"✅ 成功抓取内容，长度: {len(content)} 字符")
-                        print(f"📝 文章内容: {content[:500]}...")  # 只显示前500字
-                    else:
-                        # 如果还是没找到，打印所有div元素，看看页面结构
-                        print("❌ 未找到正文元素，打印所有div元素:")
-                        divs = detail_soup.find_all('div', limit=10)
-                        for i, div in enumerate(divs):
-                            print(f"📋 Div {i}: {div.get('class') or div.get('id') or '无'}")
-                            print(f"   内容预览: {div.get_text(strip=True)[:100]}...")
-                except Exception as e:
-                    print(f"❌ 获取内容失败: {e}")
+                except Exception:
                     pass
                 
                 policy_data = {
