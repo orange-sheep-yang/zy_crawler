@@ -458,6 +458,27 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"⚠️  导入江苏省商务厅_政策及公告爬虫失败: {e}")
         
+        # 导入商务部政策发布爬虫
+        try:
+            import mofcom_zcfb_crawler
+            manager.register_crawler("商务部_政策发布", mofcom_zcfb_crawler.run, mofcom_zcfb_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入商务部_政策发布爬虫失败: {e}")
+        
+        # 导入商务部工作通知爬虫
+        try:
+            import mofcom_gztz_crawler
+            manager.register_crawler("商务部_工作通知", mofcom_gztz_crawler.run, mofcom_gztz_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入商务部_工作通知爬虫失败: {e}")
+        
+        # 导入商务部规划计划爬虫
+        try:
+            import mofcom_ghjh_crawler
+            manager.register_crawler("商务部_规划计划", mofcom_ghjh_crawler.run, mofcom_ghjh_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入商务部_规划计划爬虫失败: {e}")
+        
     except ImportError as e:
         print(f"⚠️  导入爬虫模块失败: {e}")
     
