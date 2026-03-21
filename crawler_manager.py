@@ -437,6 +437,27 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"⚠️  导入江苏省住房和城乡建设厅爬虫失败: {e}")
         
+        # 导入江苏省商务厅意见征集爬虫
+        try:
+            import jiangsu_swt_yjzj_crawler
+            manager.register_crawler("江苏省商务厅_意见征集", jiangsu_swt_yjzj_crawler.run, jiangsu_swt_yjzj_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入江苏省商务厅_意见征集爬虫失败: {e}")
+        
+        # 导入江苏省商务厅公告通知爬虫
+        try:
+            import jiangsu_swt_ggtz_crawler
+            manager.register_crawler("江苏省商务厅_公告通知", jiangsu_swt_ggtz_crawler.run, jiangsu_swt_ggtz_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入江苏省商务厅_公告通知爬虫失败: {e}")
+        
+        # 导入江苏省商务厅政策及公告爬虫
+        try:
+            import jiangsu_swt_zcgg_crawler
+            manager.register_crawler("江苏省商务厅_政策及公告", jiangsu_swt_zcgg_crawler.run, jiangsu_swt_zcgg_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入江苏省商务厅_政策及公告爬虫失败: {e}")
+        
     except ImportError as e:
         print(f"⚠️  导入爬虫模块失败: {e}")
     
