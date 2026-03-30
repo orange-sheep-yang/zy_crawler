@@ -193,15 +193,25 @@ def run():
         data, all_items = scrape_data()
         if data:
             result = save_to_supabase(data)
-            print(f"📊 抓取数据: {len(data)} 条")
-            print(f"💾 写入数据库: {len(result)} 条")
+            print(f"� 写入数据库: {len(data)} 条")
+            print("----------------------------------------")
+            
+            # 测试内容抓取
+            if data:
+                print("� 测试内容抓取：")
+                print(f"标题: {data[0]['title']}")
+                print(f"链接: {data[0]['url']}")
+                print(f"内容长度: {len(data[0]['content'])} 字符")
+                print(f"内容预览: {data[0]['content'][:500]}...")
             print("✅ 爬虫 江苏省农业农村厅通知公告 执行成功")
         else:
+            print("💾 写入数据库: 0 条")
+            print("----------------------------------------")
             print("⚠️  未找到目标日期的文章")
-            print("✅ 爬虫 江苏省农业农村厅通知公告 执行完成")
         return data
     except Exception as e:
         print(f"❌ 爬虫 江苏省农业农村厅通知公告 运行失败 - {e}")
+        print("----------------------------------------")
         return []
 
 # ==========================================
