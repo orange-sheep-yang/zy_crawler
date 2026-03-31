@@ -168,16 +168,6 @@ def run():
             result, api_push_result = save_to_supabase(data)
             print(f"💾 写入数据库: {len(result)} 条")
             print("----------------------------------------")
-            
-            # 测试内容抓取
-            if result:
-                print("📄 测试内容抓取：")
-                print(f"标题: {result[0]['title']}")
-                print(f"链接: {result[0]['url']}")
-                print(f"内容长度: {len(result[0]['content'])} 字符")
-                print(f"内容预览: {result[0]['content'][:500]}...")
-            print("✅ 爬虫 江苏省农业农村厅通知公告 执行成功")
-            return result
         else:
             print("💾 写入数据库: 0 条")
             print("----------------------------------------")
