@@ -178,10 +178,10 @@ def save_to_supabase(data_list):
             on_conflict="title"
         ).execute()
         
-        print(f"✅ 成功写入 {len(processed_data)} 条数据到 Supabase")
+        print(f"✅ 江苏省农业农村厅_通知公告：成功推送 {len(processed_data)} 条数据到API")
         return data_list
     except Exception as e:
-        print(f"❌ 爬虫/数据库写入失败：{e}")
+        print(f"❌ 江苏省农业农村厅_通知公告：API推送失败 - {e}")
         return data_list
 
 # ==========================================
