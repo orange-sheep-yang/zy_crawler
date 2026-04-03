@@ -98,10 +98,11 @@ def scrape_data():
 
     print(f"✅ 江苏省文旅厅总计抓取到 {len(policies)} 条昨日数据")
     return policies, all_items
-
+    
 def run():
     try:
         data, all_items = scrape_data()
+        
         if all_items:
             print("📊 页面最新5条是：")
             for i, item in enumerate(all_items[:5], 1):
@@ -110,10 +111,15 @@ def run():
         if data:
             save_to_policy(data, "江苏省文旅厅")
             print(f"💾 写入数据库: {len(data)} 条")
+            return data  # ✅ 修复点1：成功抓到数据时，必须 return data
         else:
             print("💾 写入数据库: 0 条 (没有昨日数据)")
+            return []    # ✅ 修复点2：没有抓到数据时，必须 return 一个空列表 []
+            
     except Exception as e:
         print(f"❌ 文旅厅爬虫运行异常: {e}")
+        return []        # ✅ 修复点3：发生异常时，也必须 return 一个空列表 []
+
 
 if __name__ == "__main__":
     run()
