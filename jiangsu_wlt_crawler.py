@@ -21,7 +21,7 @@ TARGETS = [
     {
         "name": "江苏省文旅厅_通知公告", 
         "columnid": "699", 
-        "unitid": "423807", # ✅ 已经帮你填好了刚刚找到的暗号
+        "unitid": "423807", 
         "base_url": "https://wlt.jiangsu.gov.cn/col/col699/index.html"
     }
 ]
@@ -44,7 +44,6 @@ def scrape_data():
     }
 
     for target in TARGETS:
-        # 防呆设计：如果没有填unitid，直接跳过提示
         if not target["unitid"].isdigit():
             print(f"⚠️ {target['name']} 跳过：请先在代码里填入正确的 unitid！")
             continue
@@ -67,6 +66,8 @@ def scrape_data():
             
             records = re.findall(r'<record><!\[CDATA\[([\s\S]*?)\]\]></record>', response.text)
             
+            filtered_count = 0
+
             for record_html in records:
                 soup_item = BeautifulSoup(record_html, 'html.parser')
                 a_tag = soup_item.find('a')
@@ -82,11 +83,8 @@ def scrape_data():
                     if item_info not in all_items:
                         all_items.append(item_info)
 
-                    # ========================================================
-                    # 🚀 放水测试开关：已改为 if True 强制抓取，无视日期限制
-                    # ========================================================
-                    if True: 
-                        print(f"✨ [测试模式] 发现文章: {title} ({pub_at})")
+                    # 严格日期判断逻辑：只抓昨天的数据
+                    if pub_at == yesterday: 
                         content = ""
                         try:
                             detail_res = requests.get(link, headers=headers, timeout=20)
@@ -96,7 +94,6 @@ def scrape_data():
                             content_elem = detail_soup.select_one('#UCAP-CONTENT') or detail_soup.select_one('.bt-content')
                             if content_elem:
                                 content = content_elem.get_text(strip=True)
-                                print(f"   └─ 成功抓取正文，字数：{len(content)}")
                         except Exception as e:
                             print(f"⚠️ 详情页抓取失败 {link}: {e}")
 
@@ -109,27 +106,28 @@ def scrape_data():
                             'source': '江苏省文旅厅',
                             'category': category_name
                         })
-
-                        # 【安全阀】：统计当前栏目抓了几条，达到 2 条立刻停止当前栏目的抓取
-                        current_category_count = sum(1 for p in policies if p['category'] == category_name)
-                        if current_category_count >= 2:
-                            print(f"🛑 [测试安全阀] {target['name']} 已抓满 2 条，强制进入下一栏目！")
-                            break # 跳出当前栏目的循环
+                    else:
+                        filtered_count += 1
+                        
+            print(f"⏭️  {target['name']}：过滤掉 {filtered_count} 条非目标日期的数据")
 
         except Exception as e:
             print(f"❌ {target['name']} 接口访问失败: {e}")
 
-    print(f"✅ 江苏省文旅厅本次收集到 {len(policies)} 条待入库数据")
+    print(f"✅ 江苏省文旅厅爬虫：成功抓取 {len(policies)} 条前一天数据")
+    
+    # 打印页面最新5条（格式与其他爬虫完全一致）
+    if all_items:
+        print("📊 页面最新5条是：")
+        for i, item in enumerate(all_items[:5], 1):
+            date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+            print(f"✅ {item['title']} {date_str}")
+            
     return policies, all_items
 
 def run():
     try:
-        data, all_items = scrape_data()
-        
-        if all_items:
-            print("📊 页面最新抓取记录是：")
-            for i, item in enumerate(all_items[:8], 1):
-                print(f"✅ [{item['pub_at']}] {item['title']}")
+        data, _ = scrape_data()
         
         if data:
             save_to_policy(data, "江苏省文旅厅")
