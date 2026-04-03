@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import shutil
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin
@@ -8,9 +9,10 @@ from urllib.parse import urljoin
 # 导入数据库工具
 from db_utils import save_to_policy
 
-# 🌟 引入 Selenium 自动化浏览器
+# 🌟 引入 Selenium 相关组件
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 # ==========================================
 # 1. 终极配置：直接填网页原地址，不用管接口了！
@@ -27,16 +29,26 @@ TARGETS = [
 ]
 
 def setup_driver():
-    """配置并启动无头浏览器 (后台隐身运行)"""
+    """配置并启动无头浏览器 (兼容 GitHub Actions 环境)"""
     options = Options()
-    options.add_argument('--headless')  # 无头模式，不在屏幕上显示窗口
+    options.add_argument('--headless')  # 无头模式
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox') # Linux 环境必备
     options.add_argument('--disable-dev-shm-usage')
-    # 伪装成正常浏览器
     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
-    return webdriver.Chrome(options=options)
+    # 🌟 核心修复 1：智能寻找系统中安装的浏览器程序 (兼容 Chromium 和 Chrome)
+    browser_path = shutil.which('chromium-browser') or shutil.which('chromium') or shutil.which('google-chrome')
+    if browser_path:
+        options.binary_location = browser_path
+        
+    # 🌟 核心修复 2：智能寻找 chromedriver 驱动程序
+    service = Service()
+    driver_path = shutil.which('chromedriver')
+    if driver_path:
+        service = Service(executable_path=driver_path)
+    
+    return webdriver.Chrome(service=service, options=options)
 
 def scrape_data():
     policies = []
@@ -46,7 +58,11 @@ def scrape_data():
     yesterday = (datetime.now(tz_utc8) - timedelta(days=1)).date()
     
     print("🚀 正在启动自动化浏览器以突破 521 防护盾...")
-    driver = setup_driver()
+    try:
+        driver = setup_driver()
+    except Exception as e:
+        print(f"❌ 浏览器启动失败，请检查 GitHub Actions 环境是否安装了 Chromium: {e}")
+        return [], []
 
     try:
         for target in TARGETS:
@@ -55,8 +71,7 @@ def scrape_data():
             # 1. 直接让浏览器打开网页
             driver.get(target['base_url'])
             
-            # 🌟 核心魔法：耐心等待 3 秒。
-            # 这 3 秒内，浏览器会自动执行那段复杂的 JS，计算出 Cookie，并自动刷新页面！
+            # 🌟 核心魔法：耐心等待 3 秒，等防火墙自动通关！
             time.sleep(3)
             
             # 获取经过浏览器渲染后的真实网页源码
@@ -70,8 +85,6 @@ def scrape_data():
                 continue
                 
             filtered_count = 0
-
-            # 这个列表用来存详情页的链接，避免在循环中直接跳转打断节奏
             to_fetch_details = []
 
             for record_html in records:
@@ -89,7 +102,7 @@ def scrape_data():
                     if item_info not in all_items:
                         all_items.append(item_info)
 
-                    # 如果是昨天的数据，加入待抓取正文列表
+                    # 严格日期判断逻辑：只抓昨天的数据
                     if pub_at == yesterday:
                         to_fetch_details.append({
                             'title': title,
@@ -101,7 +114,7 @@ def scrape_data():
                     else:
                         filtered_count += 1
                         
-            # 2. 依次去抓取详情页正文（同样使用浏览器，完美绕过防护）
+            # 2. 依次去抓取详情页正文
             for item in to_fetch_details:
                 print(f"✨ 发现目标文章，正在抓取正文: {item['title']}")
                 content = ""
