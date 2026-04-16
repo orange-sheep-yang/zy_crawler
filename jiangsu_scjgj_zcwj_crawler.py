@@ -15,12 +15,7 @@ def scrape_data():
     """抓取数据，返回与表结构一致的字典列表"""
     policies = []
     all_items = 0
-    
-    # 统一输出格式：头部信息
-    print(f"📦 开始执行爬虫: {SOURCE_NAME}")
-    print(f"🔗 目标网址: {TARGET_URL}")
-    print("-" * 40)
-    
+
     try:
         # 计算前一天日期（北京时间 UTC+8）
         tz_utc8 = timezone(timedelta(hours=8))
